@@ -7,56 +7,26 @@
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
     body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
       transition: background-color 0.8s ease;
     }
     .app {
-      background: rgba(255,255,255,0.85);
-      border-radius: 16px;
-      padding: 24px 28px 28px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-      text-align: center;
+      background: rgba(255,255,255,0.9); border-radius: 18px; padding: 22px 26px 26px;
+      width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.18); text-align: center;
     }
-    h1 { margin: 0 0 10px; font-size: 1.6rem; }
-    .phase { font-weight: 600; margin-bottom: 12px; }
-    .timer {
-      font-size: 3rem;
-      font-weight: 700;
-      margin: 10px 0 18px;
-    }
-    .section { margin-bottom: 18px; }
+    h1 { margin: 0 0 6px; font-size: 1.6rem; }
+    .phase { font-weight: 600; margin-bottom: 10px; }
+    .timer { font-size: 3rem; font-weight: 800; margin: 8px 0 16px; }
+    .section { margin-bottom: 16px; }
     .section-title { font-weight: 600; margin-bottom: 8px; }
-    .buttons {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-      gap: 8px;
-    }
+    .buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px; }
     button {
-      padding: 10px 6px;
-      border: none;
-      border-radius: 10px;
-      background: #222;
-      color: #fff;
-      cursor: pointer;
-      font-weight: 600;
-      transition: transform 0.05s ease, opacity 0.15s ease;
+      padding: 10px 6px; border: none; border-radius: 10px; background: #222; color: #fff;
+      cursor: pointer; font-weight: 700;
     }
-    button:hover { opacity: 0.9; }
-    button:active { transform: scale(0.97); }
     button.secondary { background: #666; }
     button.danger { background: #b00020; }
-    .controls {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
-    }
+    .controls { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
     .hidden { display: none; }
   </style>
 </head>
@@ -83,27 +53,26 @@
     </div>
   </div>
 
-  <!-- YouTube IFrame API -->
+  <!-- YouTube players (hidden) -->
   <div id="studyPlayer" style="display:none"></div>
   <div id="breakPlayer" style="display:none"></div>
   <script src="https://www.youtube.com/iframe_api"></script>
-  <iframe id="breakAudio" width="0" height="0" src="https://www.youtube.com/embed/LH0xb6g0o_k?autoplay=0&mute=0&loop=1&playlist=LH0xb6g0o_k" frameborder="0" allow="autoplay"></iframe>
 
   <script>
-    // Time options
-    const studyTimes = [5, 10, 15, 20, 25, 30, 45];
-    const breakTimes = [2, 3, 5, 8, 10, 15];
-
-    // Color cycle for study background
+    // Options
+    const studyTimes = [5,10,15,20,25,30,45];
+    const breakTimes = [2,3,5,8,10,15];
     const colors = ['#ff9ecf', '#b57cff', '#7ed957', '#6ecbff'];
-    let colorIndex = 0;
 
+    // State
     let intervalId = null;
     let remainingSeconds = 0;
     let currentStudyMinutes = null;
-    let currentBreakMinutes = null;
-    let phase = 'idle'; // 'study' | 'break'
+    let phase = 'idle';
+    let colorIndex = 0;
+    let isMuted = false;
 
+    // Elements
     const timerEl = document.getElementById('timer');
     const phaseEl = document.getElementById('phase');
     const studySection = document.getElementById('studySection');
@@ -111,178 +80,57 @@
     const studyButtonsEl = document.getElementById('studyButtons');
     const breakButtonsEl = document.getElementById('breakButtons');
     const pauseBtn = document.getElementById('pauseBtn');
-    const muteBtn = document.getElementById('muteBtn');
-    let studyPlayer;
-    let breakPlayer;
-    let isMuted = false;
     const resetBtn = document.getElementById('resetBtn');
+    const muteBtn = document.getElementById('muteBtn');
 
-    function formatTime(sec) {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    }
+    // YouTube players
+    let studyPlayer = null;
+    let breakPlayer = null;
 
-    function setBackgroundColor() {
-      document.body.style.backgroundColor = colors[colorIndex];
-      colorIndex = (colorIndex + 1) % colors.length;
-    }
+    function formatTime(sec){ const m=Math.floor(sec/60), s=sec%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+    function setBg(){ document.body.style.backgroundColor = colors[colorIndex]; colorIndex=(colorIndex+1)%colors.length; }
 
-    function playStudyAudio() {
-      if (!studyPlayer) return;
-      breakPlayer && breakPlayer.pauseVideo();
-      studyPlayer.playVideo();
-      if (isMuted) studyPlayer.mute(); else studyPlayer.unMute();
-      muteBtn.classList.remove('hidden');
-    }
+    function playStudyAudio(){ if(!studyPlayer) return; breakPlayer && breakPlayer.pauseVideo(); studyPlayer.playVideo(); isMuted?studyPlayer.mute():studyPlayer.unMute(); muteBtn.classList.remove('hidden'); }
+    function playBreakAudio(){ if(!breakPlayer) return; studyPlayer && studyPlayer.pauseVideo(); breakPlayer.playVideo(); muteBtn.classList.add('hidden'); }
 
-    function playBreakAudio() {
-      if (!breakPlayer) return;
-      studyPlayer && studyPlayer.pauseVideo();
-      breakPlayer.playVideo();
-      muteBtn.classList.add('hidden');
-    }
-
-    function startTimer(seconds, newPhase) {
+    function startTimer(seconds, newPhase){
       clearInterval(intervalId);
-      remainingSeconds = seconds;
-      phase = newPhase;
-      timerEl.textContent = formatTime(remainingSeconds);
-
-      if (phase === 'study') {
-        phaseEl.textContent = 'Studying';
-        setBackgroundColor();
-        playStudyAudio();
-      } else {
-        phaseEl.textContent = 'Break time';
-        document.body.style.backgroundColor = '#f5f5f5';
-        playBreakAudio();
-      }
-
-      intervalId = setInterval(() => {
-        remainingSeconds--;
-        timerEl.textContent = formatTime(remainingSeconds);
-
-        if (remainingSeconds <= 0) {
-          clearInterval(intervalId);
-          intervalId = null;
-          if (phase === 'study') {
-            breakSection.classList.remove('hidden');
-            phaseEl.textContent = 'Choose a break time';
-            playBreakAudio();
-          } else {
-            startTimer(currentStudyMinutes * 60, 'study');
-          }
-        }
-      }, 1000);
+      remainingSeconds = seconds; phase = newPhase; timerEl.textContent = formatTime(remainingSeconds);
+      if(phase==='study'){ phaseEl.textContent='Studying'; setBg(); playStudyAudio(); }
+      else { phaseEl.textContent='Break time'; document.body.style.backgroundColor='#f5f5f5'; playBreakAudio(); }
+      intervalId = setInterval(()=>{
+        remainingSeconds--; timerEl.textContent = formatTime(remainingSeconds);
+        if(remainingSeconds<=0){ clearInterval(intervalId); intervalId=null; if(phase==='study'){ breakSection.classList.remove('hidden'); phaseEl.textContent='Choose a break time'; playBreakAudio(); } else { startTimer(currentStudyMinutes*60,'study'); } }
+      },1000);
     }
 
-    // Build study buttons
-    studyTimes.forEach(min => {
-      const btn = document.createElement('button');
-      btn.textContent = `${min} min`;
-      btn.onclick = () => {
-        currentStudyMinutes = min;
-        studySection.classList.add('hidden');
-        breakSection.classList.remove('hidden');
-        phaseEl.textContent = 'Choose a break time';
-        timerEl.textContent = formatTime(min * 60);
-      };
-      studyButtonsEl.appendChild(btn);
-    });
+    // Build buttons
+    studyTimes.forEach(min=>{ const b=document.createElement('button'); b.textContent=`${min} min`; b.onclick=()=>{ currentStudyMinutes=min; studySection.classList.add('hidden'); breakSection.classList.remove('hidden'); phaseEl.textContent='Choose a break time'; timerEl.textContent=formatTime(min*60); }; studyButtonsEl.appendChild(b); });
+    breakTimes.forEach(min=>{ const b=document.createElement('button'); b.textContent=`${min} min`; b.onclick=()=>{ breakSection.classList.add('hidden'); startTimer(currentStudyMinutes*60,'study'); }; breakButtonsEl.appendChild(b); });
 
-    // Build break buttons
-    breakTimes.forEach(min => {
-      const btn = document.createElement('button');
-      btn.textContent = `${min} min`;
-      btn.onclick = () => {
-        currentBreakMinutes = min;
-        breakSection.classList.add('hidden');
-        startTimer(currentStudyMinutes * 60, 'study');
-      };
-      breakButtonsEl.appendChild(btn);
-    });
-
-    pauseBtn.onclick = () => {
-      if (phase === 'idle') return;
-
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-        pauseBtn.textContent = 'Resume';
-        studyPlayer && studyPlayer.pauseVideo();
-        breakPlayer && breakPlayer.pauseVideo();
-      } else {
-        intervalId = setInterval(() => {
-          remainingSeconds--;
-          timerEl.textContent = formatTime(remainingSeconds);
-
-          if (remainingSeconds <= 0) {
-            clearInterval(intervalId);
-            intervalId = null;
-            if (phase === 'study') {
-              breakSection.classList.remove('hidden');
-              phaseEl.textContent = 'Choose a break time';
-              playBreakAudio();
-            } else {
-              startTimer(currentStudyMinutes * 60, 'study');
-            }
-          }
-        }, 1000);
-        pauseBtn.textContent = 'Pause';
-        if (phase === 'study') playStudyAudio();
-        if (phase === 'break') playBreakAudio();
-      }
+    pauseBtn.onclick=()=>{
+      if(phase==='idle') return;
+      if(intervalId){ clearInterval(intervalId); intervalId=null; pauseBtn.textContent='Resume'; studyPlayer&&studyPlayer.pauseVideo(); breakPlayer&&breakPlayer.pauseVideo(); }
+      else { pauseBtn.textContent='Pause'; intervalId=setInterval(()=>{
+        remainingSeconds--; timerEl.textContent=formatTime(remainingSeconds);
+        if(remainingSeconds<=0){ clearInterval(intervalId); intervalId=null; if(phase==='study'){ breakSection.classList.remove('hidden'); phaseEl.textContent='Choose a break time'; playBreakAudio(); } else { startTimer(currentStudyMinutes*60,'study'); } }
+      },1000); phase==='study'?playStudyAudio():playBreakAudio(); }
     };
 
-    resetBtn.onclick = () => {
-      clearInterval(intervalId);
-      intervalId = null;
-      phase = 'idle';
-      currentStudyMinutes = null;
-      currentBreakMinutes = null;
-      studySection.classList.remove('hidden');
-      breakSection.classList.add('hidden');
-      phaseEl.textContent = 'Choose a study time';
-      timerEl.textContent = '00:00';
-      document.body.style.backgroundColor = '#ffffff';
-      pauseBtn.textContent = 'Pause';
-      muteBtn.classList.add('hidden');
-      studyPlayer && studyPlayer.pauseVideo();
-      breakPlayer && breakPlayer.pauseVideo();
+    resetBtn.onclick=()=>{
+      clearInterval(intervalId); intervalId=null; phase='idle'; currentStudyMinutes=null;
+      studySection.classList.remove('hidden'); breakSection.classList.add('hidden');
+      phaseEl.textContent='Choose a study time'; timerEl.textContent='00:00'; document.body.style.backgroundColor='#ffffff'; pauseBtn.textContent='Pause'; muteBtn.classList.add('hidden');
+      studyPlayer&&studyPlayer.pauseVideo(); breakPlayer&&breakPlayer.pauseVideo();
     };
+
+    muteBtn.onclick=()=>{ isMuted=!isMuted; muteBtn.textContent=isMuted?'Unmute':'Mute'; if(studyPlayer){ isMuted?studyPlayer.mute():studyPlayer.unMute(); } };
+
+    // YouTube API
+    function onYouTubeIframeAPIReady(){
+      studyPlayer = new YT.Player('studyPlayer',{ videoId:'6d8CbHqXD9Y', playerVars:{ autoplay:0, loop:1, playlist:'6d8CbHqXD9Y' }});
+      breakPlayer = new YT.Player('breakPlayer',{ videoId:'LH0xb6g0o_k', playerVars:{ autoplay:0, loop:1, playlist:'LH0xb6g0o_k' }});
+    }
   </script>
 </body>
 </html>
-
-    muteBtn.onclick = () => {
-      isMuted = !isMuted;
-      muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
-      if (isMuted) {
-        studyAudio.src = studyAudio.src.replace('mute=0','mute=1');
-      } else {
-        studyAudio.src = studyAudio.src.replace('mute=1','mute=0');
-      }
-    };
-
-
-
-    muteBtn.onclick = () => {
-      isMuted = !isMuted;
-      muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
-      if (studyPlayer) {
-        if (isMuted) studyPlayer.mute(); else studyPlayer.unMute();
-      }
-    };
-
-    // YouTube API ready
-    function onYouTubeIframeAPIReady() {
-      studyPlayer = new YT.Player('studyPlayer', {
-        videoId: '6d8CbHqXD9Y',
-        playerVars: { autoplay: 0, loop: 1, playlist: '6d8CbHqXD9Y' }
-      });
-      breakPlayer = new YT.Player('breakPlayer', {
-        videoId: 'LH0xb6g0o_k',
-        playerVars: { autoplay: 0, loop: 1, playlist: 'LH0xb6g0o_k' }
-      });
-    }
