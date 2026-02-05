@@ -78,9 +78,14 @@
 
     <div class="controls">
       <button class="secondary" id="pauseBtn">Pause</button>
+      <button class="secondary hidden" id="muteBtn">Mute</button>
       <button class="danger" id="resetBtn">Reset</button>
     </div>
   </div>
+
+  <!-- Hidden YouTube players for background audio -->
+  <iframe id="studyAudio" width="0" height="0" src="https://www.youtube.com/embed/6d8CbHqXD9Y?autoplay=0&mute=1&loop=1&playlist=6d8CbHqXD9Y" frameborder="0" allow="autoplay"></iframe>
+  <iframe id="breakAudio" width="0" height="0" src="https://www.youtube.com/embed/LH0xb6g0o_k?autoplay=0&mute=0&loop=1&playlist=LH0xb6g0o_k" frameborder="0" allow="autoplay"></iframe>
 
   <script>
     // Time options
@@ -104,6 +109,11 @@
     const studyButtonsEl = document.getElementById('studyButtons');
     const breakButtonsEl = document.getElementById('breakButtons');
     const pauseBtn = document.getElementById('pauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const studyAudio = document.getElementById('studyAudio');
+    const breakAudio = document.getElementById('breakAudio');
+
+    let isMuted = false;
     const resetBtn = document.getElementById('resetBtn');
 
     function formatTime(sec) {
@@ -117,37 +127,14 @@
       colorIndex = (colorIndex + 1) % colors.length;
     }
 
-    function startTimer(seconds, newPhase) {
-      clearInterval(intervalId);
-      remainingSeconds = seconds;
-      phase = newPhase;
-      timerEl.textContent = formatTime(remainingSeconds);
-
-      if (phase === 'study') {
-        phaseEl.textContent = 'Studying';
-        setBackgroundColor();
-      } else {
-        phaseEl.textContent = 'Break time';
-        document.body.style.backgroundColor = '#f5f5f5';
-      }
-
-      intervalId = setInterval(() => {
-        remainingSeconds--;
-        timerEl.textContent = formatTime(remainingSeconds);
-
-        if (remainingSeconds <= 0) {
-          clearInterval(intervalId);
-          if (phase === 'study') {
-            // move to break
-            breakSection.classList.remove('hidden');
-            phaseEl.textContent = 'Choose a break time';
-          } else {
-            // break ended -> start study again automatically
-            startTimer(currentStudyMinutes * 60, 'study');
-          }
-        }
-      }, 1000);
+    function playStudyAudio() {
+      breakAudio.src = breakAudio.src.replace('autoplay=1','autoplay=0');
+      studyAudio.src = studyAudio.src.replace('autoplay=0','autoplay=1');
+      muteBtn.classList.remove('hidden');
     }
+
+    function playBreakAudio() {
+      studyAudio.src = studyAudio.src.replace('autoplay=
 
     // Build study buttons
     studyTimes.forEach(min => {
