@@ -83,8 +83,10 @@
     </div>
   </div>
 
-  <!-- Hidden YouTube players for background audio -->
-  <iframe id="studyAudio" width="0" height="0" src="https://www.youtube.com/embed/6d8CbHqXD9Y?autoplay=0&mute=1&loop=1&playlist=6d8CbHqXD9Y" frameborder="0" allow="autoplay"></iframe>
+  <!-- YouTube IFrame API -->
+  <div id="studyPlayer" style="display:none"></div>
+  <div id="breakPlayer" style="display:none"></div>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <iframe id="breakAudio" width="0" height="0" src="https://www.youtube.com/embed/LH0xb6g0o_k?autoplay=0&mute=0&loop=1&playlist=LH0xb6g0o_k" frameborder="0" allow="autoplay"></iframe>
 
   <script>
@@ -110,9 +112,8 @@
     const breakButtonsEl = document.getElementById('breakButtons');
     const pauseBtn = document.getElementById('pauseBtn');
     const muteBtn = document.getElementById('muteBtn');
-    const studyAudio = document.getElementById('studyAudio');
-    const breakAudio = document.getElementById('breakAudio');
-
+    let studyPlayer;
+    let breakPlayer;
     let isMuted = false;
     const resetBtn = document.getElementById('resetBtn');
 
@@ -128,13 +129,53 @@
     }
 
     function playStudyAudio() {
-      breakAudio.src = breakAudio.src.replace('autoplay=1','autoplay=0');
-      studyAudio.src = studyAudio.src.replace('autoplay=0','autoplay=1');
+      if (!studyPlayer) return;
+      breakPlayer && breakPlayer.pauseVideo();
+      studyPlayer.playVideo();
+      if (isMuted) studyPlayer.mute(); else studyPlayer.unMute();
       muteBtn.classList.remove('hidden');
     }
 
     function playBreakAudio() {
-      studyAudio.src = studyAudio.src.replace('autoplay=
+      if (!breakPlayer) return;
+      studyPlayer && studyPlayer.pauseVideo();
+      breakPlayer.playVideo();
+      muteBtn.classList.add('hidden');
+    }
+
+    function startTimer(seconds, newPhase) {
+      clearInterval(intervalId);
+      remainingSeconds = seconds;
+      phase = newPhase;
+      timerEl.textContent = formatTime(remainingSeconds);
+
+      if (phase === 'study') {
+        phaseEl.textContent = 'Studying';
+        setBackgroundColor();
+        playStudyAudio();
+      } else {
+        phaseEl.textContent = 'Break time';
+        document.body.style.backgroundColor = '#f5f5f5';
+        playBreakAudio();
+      }
+
+      intervalId = setInterval(() => {
+        remainingSeconds--;
+        timerEl.textContent = formatTime(remainingSeconds);
+
+        if (remainingSeconds <= 0) {
+          clearInterval(intervalId);
+          intervalId = null;
+          if (phase === 'study') {
+            breakSection.classList.remove('hidden');
+            phaseEl.textContent = 'Choose a break time';
+            playBreakAudio();
+          } else {
+            startTimer(currentStudyMinutes * 60, 'study');
+          }
+        }
+      }, 1000);
+    }
 
     // Build study buttons
     studyTimes.forEach(min => {
@@ -166,12 +207,12 @@
       if (phase === 'idle') return;
 
       if (intervalId) {
-        // Pause
         clearInterval(intervalId);
         intervalId = null;
         pauseBtn.textContent = 'Resume';
+        studyPlayer && studyPlayer.pauseVideo();
+        breakPlayer && breakPlayer.pauseVideo();
       } else {
-        // Resume without resetting time or color
         intervalId = setInterval(() => {
           remainingSeconds--;
           timerEl.textContent = formatTime(remainingSeconds);
@@ -182,12 +223,15 @@
             if (phase === 'study') {
               breakSection.classList.remove('hidden');
               phaseEl.textContent = 'Choose a break time';
+              playBreakAudio();
             } else {
               startTimer(currentStudyMinutes * 60, 'study');
             }
           }
         }, 1000);
         pauseBtn.textContent = 'Pause';
+        if (phase === 'study') playStudyAudio();
+        if (phase === 'break') playBreakAudio();
       }
     };
 
@@ -203,7 +247,42 @@
       timerEl.textContent = '00:00';
       document.body.style.backgroundColor = '#ffffff';
       pauseBtn.textContent = 'Pause';
+      muteBtn.classList.add('hidden');
+      studyPlayer && studyPlayer.pauseVideo();
+      breakPlayer && breakPlayer.pauseVideo();
     };
   </script>
 </body>
 </html>
+
+    muteBtn.onclick = () => {
+      isMuted = !isMuted;
+      muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+      if (isMuted) {
+        studyAudio.src = studyAudio.src.replace('mute=0','mute=1');
+      } else {
+        studyAudio.src = studyAudio.src.replace('mute=1','mute=0');
+      }
+    };
+
+
+
+    muteBtn.onclick = () => {
+      isMuted = !isMuted;
+      muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+      if (studyPlayer) {
+        if (isMuted) studyPlayer.mute(); else studyPlayer.unMute();
+      }
+    };
+
+    // YouTube API ready
+    function onYouTubeIframeAPIReady() {
+      studyPlayer = new YT.Player('studyPlayer', {
+        videoId: '6d8CbHqXD9Y',
+        playerVars: { autoplay: 0, loop: 1, playlist: '6d8CbHqXD9Y' }
+      });
+      breakPlayer = new YT.Player('breakPlayer', {
+        videoId: 'LH0xb6g0o_k',
+        playerVars: { autoplay: 0, loop: 1, playlist: 'LH0xb6g0o_k' }
+      });
+    }
