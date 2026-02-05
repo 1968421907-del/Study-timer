@@ -176,13 +176,30 @@
     });
 
     pauseBtn.onclick = () => {
-      if (!intervalId) return;
-      if (pauseBtn.textContent === 'Pause') {
+      if (phase === 'idle') return;
+
+      if (intervalId) {
+        // Pause
         clearInterval(intervalId);
         intervalId = null;
         pauseBtn.textContent = 'Resume';
       } else {
-        startTimer(remainingSeconds, phase);
+        // Resume without resetting time or color
+        intervalId = setInterval(() => {
+          remainingSeconds--;
+          timerEl.textContent = formatTime(remainingSeconds);
+
+          if (remainingSeconds <= 0) {
+            clearInterval(intervalId);
+            intervalId = null;
+            if (phase === 'study') {
+              breakSection.classList.remove('hidden');
+              phaseEl.textContent = 'Choose a break time';
+            } else {
+              startTimer(currentStudyMinutes * 60, 'study');
+            }
+          }
+        }, 1000);
         pauseBtn.textContent = 'Pause';
       }
     };
