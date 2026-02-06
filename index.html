@@ -1,35 +1,165 @@
-function startTimer(seconds, newPhase) {
-  clearInterval(intervalId);
-  remainingSeconds = seconds;
-  phase = newPhase;
-  timerEl.textContent = formatTime(remainingSeconds);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study & Break Timer</title>
 
-  if (phase === 'study') {
-    phaseEl.textContent = 'Studying';
-    setBackgroundColor();
-    playStudyVideo();
-  } else {
-    phaseEl.textContent = 'Break time';
-    document.body.style.backgroundColor = '#f5f5f5';
-    stopStudyVideo();
-  }
-
-  intervalId = setInterval(() => {
-    remainingSeconds--;
-    timerEl.textContent = formatTime(remainingSeconds);
-
-    if (remainingSeconds <= 0) {
-      clearInterval(intervalId);
-
-      if (phase === 'study') {
-        stopStudyVideo();
-        breakSection.classList.remove('hidden');
-        phaseEl.textContent = 'Choose a break time';
-      } else {
-        // ✅ break JUST hit 00:00
-        playBreakEndVideo();
-        startTimer(currentStudyMinutes * 60, 'study');
-      }
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.8s ease;
     }
-  }, 1000);
-}
+    .app {
+      background: rgba(255,255,255,0.9);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      text-align: center;
+    }
+    h1 { margin-bottom: 10px; }
+    .timer { font-size: 3rem; font-weight: bold; }
+    .buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px,1fr)); gap: 8px; }
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <h1>Study Timer</h1>
+    <div id="phase">Choose a study time</div>
+    <div class="timer" id="timer">00:00</div>
+
+    <div id="studySection">
+      <p>Study (minutes)</p>
+      <div class="buttons" id="studyButtons"></div>
+    </div>
+
+    <div id="breakSection" class="hidden">
+      <p>Break (minutes)</p>
+      <div class="buttons" id="breakButtons"></div>
+    </div>
+
+    <br />
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <!-- Hidden YouTube players -->
+  <iframe id="studyVideo" width="0" height="0" allow="autoplay"></iframe>
+  <iframe id="breakVideo" width="0" height="0" allow="autoplay"></iframe>
+
+  <script>
+    const studyTimes = [5, 10, 15, 25];
+    const breakTimes = [2, 5, 10];
+
+    const timerEl = document.getElementById("timer");
+    const phaseEl = document.getElementById("phase");
+    const studySection = document.getElementById("studySection");
+    const breakSection = document.getElementById("breakSection");
+    const studyButtons = document.getElementById("studyButtons");
+    const breakButtons = document.getElementById("breakButtons");
+
+    const studyVideo = document.getElementById("studyVideo");
+    const breakVideo = document.getElementById("breakVideo");
+
+    let intervalId;
+    let remainingSeconds;
+    let currentStudyMinutes;
+
+    function formatTime(sec) {
+      return `${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`;
+    }
+
+    function playStudyVideo() {
+      studyVideo.src = "https://www.youtube.com/embed/-nQ6Qtjx5aE?autoplay=1&mute=1&loop=1&playlist=-nQ6Qtjx5aE";
+    }
+
+    function stopStudyVideo() {
+      studyVideo.src = "";
+    }
+
+    function playBreakEndVideo() {
+      breakVideo.src = "https://www.youtube.com/embed/LH0xb6g0o_k?autoplay=1&mute=1";
+    }
+
+    function startTimer(seconds, phase) {
+      clearInterval(intervalId);
+      remainingSeconds = seconds;
+      timerEl.textContent = formatTime(remainingSeconds);
+
+      if (phase === "study") {
+        phaseEl.textContent = "Studying";
+        playStudyVideo();
+      } else {
+        phaseEl.textContent = "Break time";
+        stopStudyVideo();
+      }
+
+      intervalId = setInterval(() => {
+        remainingSeconds--;
+        timerEl.textContent = formatTime(remainingSeconds);
+
+        if (remainingSeconds <= 0) {
+          clearInterval(intervalId);
+          if (phase === "study") {
+            stopStudyVideo();
+            breakSection.classList.remove("hidden");
+            phaseEl.textContent = "Choose a break time";
+          } else {
+            playBreakEndVideo();
+            startTimer(currentStudyMinutes * 60, "study");
+          }
+        }
+      }, 1000);
+    }
+
+    studyTimes.forEach(min => {
+      const b = document.createElement("button");
+      b.textContent = min + " min";
+      b.onclick = () => {
+        currentStudyMinutes = min;
+        studySection.classList.add("hidden");
+        breakSection.classList.remove("hidden");
+        timerEl.textContent = formatTime(min * 60);
+      };
+      studyButtons.appendChild(b);
+    });
+
+    breakTimes.forEach(min => {
+      const b = document.createElement("button");
+      b.textContent = min + " min";
+      b.onclick = () => {
+        breakSection.classList.add("hidden");
+        startTimer(currentStudyMinutes * 60, "study");
+      };
+      breakButtons.appendChild(b);
+    });
+
+    document.getElementById("resetBtn").onclick = () => {
+      clearInterval(intervalId);
+      timerEl.textContent = "00:00";
+      phaseEl.textContent = "Choose a study time";
+      studySection.classList.remove("hidden");
+      breakSection.classList.add("hidden");
+      stopStudyVideo();
+      breakVideo.src = "";
+    };
+  </script>
+</body>
+</html>
