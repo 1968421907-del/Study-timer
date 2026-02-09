@@ -106,6 +106,23 @@
   const studyAudio = document.getElementById('studyAudio');
   const breakEndAudio = document.getElementById('breakEndAudio');
 
+  function unlockAudio() {
+    studyAudio.muted = true;
+    breakEndAudio.muted = true;
+
+    studyAudio.play().then(() => {
+      studyAudio.pause();
+      studyAudio.currentTime = 0;
+      studyAudio.muted = isMuted;
+    }).catch(() => {});
+
+    breakEndAudio.play().then(() => {
+      breakEndAudio.pause();
+      breakEndAudio.currentTime = 0;
+      breakEndAudio.muted = isMuted;
+    }).catch(() => {});
+  }
+
   function formatTime(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -162,6 +179,8 @@
     const btn = document.createElement('button');
     btn.textContent = `${min} min`;
     btn.onclick = () => {
+      unlockAudio();
+
       currentStudyMinutes = min;
       studySection.classList.add('hidden');
       breakSection.classList.remove('hidden');
@@ -175,6 +194,8 @@
     const btn = document.createElement('button');
     btn.textContent = `${min} min`;
     btn.onclick = () => {
+      unlockAudio();
+
       currentBreakMinutes = min;
       breakSection.classList.add('hidden');
       startTimer(currentStudyMinutes * 60, 'study');
