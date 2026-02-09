@@ -74,6 +74,7 @@
 
   <div class="controls">
     <button class="secondary" id="pauseBtn">Pause</button>
+    <button class="secondary" id="muteBtn">Mute</button>
     <button class="danger" id="resetBtn">Reset</button>
   </div>
 </div>
@@ -93,12 +94,14 @@
   let currentBreakMinutes = null;
   let phase = 'idle';
   let colorIndex = 0;
+  let isMuted = false;
 
   const timerEl = document.getElementById('timer');
   const phaseEl = document.getElementById('phase');
   const studySection = document.getElementById('studySection');
   const breakSection = document.getElementById('breakSection');
   const pauseBtn = document.getElementById('pauseBtn');
+  const muteBtn = document.getElementById('muteBtn');
 
   const studyAudio = document.getElementById('studyAudio');
   const breakEndAudio = document.getElementById('breakEndAudio');
@@ -124,6 +127,7 @@
       phaseEl.textContent = 'Studying';
       setBackgroundColor();
       studyAudio.currentTime = 0;
+      studyAudio.muted = isMuted;
       studyAudio.play();
     }
 
@@ -146,6 +150,7 @@
           phaseEl.textContent = 'Choose a break time';
         } else {
           breakEndAudio.currentTime = 0;
+          breakEndAudio.muted = isMuted;
           breakEndAudio.play();
           startTimer(currentStudyMinutes * 60, 'study');
         }
@@ -183,6 +188,13 @@
     intervalId = null;
     studyAudio.pause();
     pauseBtn.textContent = 'Resume';
+  };
+
+  muteBtn.onclick = () => {
+    isMuted = !isMuted;
+    studyAudio.muted = isMuted;
+    breakEndAudio.muted = isMuted;
+    muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
   };
 
   document.getElementById('resetBtn').onclick = () => {
